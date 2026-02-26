@@ -1,92 +1,193 @@
+import re
+import time
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
 import requests
 from bs4 import BeautifulSoup
-import re
-from time import sleep
-import pandas as pd
 
-#Get the Html from one website
-url = "https://immovlan.be/en/detail/apartment/for-sale/1030/schaarbeek/vbd88427"
-headers =  {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-}
-req = requests.get(url, headers=headers, timeout = 10)
-content = req.text 
-soup = BeautifulSoup(content, "html.parser")
+from utils.file_utils import save_to_csv
 
-# Make a function to get the data safely. If there is no data, it will return N/A, not crashing
-def safe_get_text(soup_element, default="N/A"):
+
+def run_optimized_scraping(urls, final_filename, batch_size=100):
+    total_urls = len(urls)
+
+    # First estimation
+    print(f"Start scraping {total_urls} URLs.")
+    start_time = time.perf_counter()
+
+    with requests.Session() as session:
+        fetch_func = partial(get_data_from_url, session=session)
+        # We divide the list into batches to save regularly.
+        for i in range(0, total_urls, batch_size):
+            print(
+                f"______________________________Batch: {i}______________________________"
+            )
+
+            batch_urls = urls[i : i + batch_size]
+
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                batch_results = list(executor.map(fetch_func, batch_urls))
+            # FILTER: Only valid dictionaries are kept (not None and not empty)
+            filtered_results = [res for res in batch_results if res]
+            # Immediate backup of the batch_results
+            save_to_csv(filtered_results, final_filename)
+            # Progress calculation and estimation
+            elapsed = time.perf_counter() - start_time
+            processed = i + len(batch_urls)
+            speed = processed / elapsed  # items per second
+            remaining = (total_urls - processed) / speed
+
+            print(
+                "_______________________________________________________________________"
+            )
+            print(
+                f"{processed} Finished in {(time.perf_counter() - start_time) / 60: .1f} minutes"
+            )
+            print(f"[{processed}/{total_urls}] - {speed:.2f} req/s")
+            print(f"Estimated time remaining: {remaining / 60:.1f} minutes")
+            print(
+                "_______________________________________________________________________"
+            )
+
+
+def get_data_from_url(url, session):
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        response = session.get(url, headers=headers, timeout=10)
+        #  If an error occurs (e.g., 404, 403, 500)
+        if response.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(response.text, "lxml")
+
+        property_dict = get_property_data(url, soup)
+        return property_dict
+    except (requests.exceptions.RequestException, Exception) as e:
+        # If there is a timeout, connection problem, or other issue, we just display a message.
+        print(f"\n[SKIP] Error on  {url} : {e}")
+        return None  # Will be filtered by [res for res in batch_results if res]
+
+
+def get_property_data(url, soup):
+    financial_details = soup.find("div", class_="financial w-100")
+    if financial_details and "annuity" in financial_details.get_text().lower():
+        return None
+
+    property_dict = initialize_property_dict(url)
+    set_property_locality(soup, property_dict)
+    set_property_type(property_dict, url)
+    set_property_price(property_dict, soup)
+    set_property_general_infos(soup, property_dict)
+
+    return property_dict
+
+
+def initialize_property_dict(url):
+    return {
+        "URL": url,
+        "Locality": None,
+        "Type of property": None,
+        "Subtype of property": None,
+        "Price": None,
+        "Type of sale": None,
+        "Number of rooms": None,
+        "Living Area": None,
+        "Fully equipped kitchen": None,
+        "Furnished": None,
+        "Open fire": None,
+        "Terrace": None,
+        "Terrace area": None,
+        "Garden": None,
+        "Garden area": None,
+        "Surface of the land": None,
+        "Number of facades": None,
+        "Swimming pool": None,
+        "State of the building": None,
+    }
+
+
+def set_property_locality(soup, property_dict):
+    property_dict["Locality"] = safe_get_text(soup.find("span", class_="city-line"), "")
+    property_dict["Zip code"] = clean_numeric(property_dict["Locality"])
+
+
+def set_property_type(property_dict, url):
+    parts = url.split("/")
+    if len(parts) >= 6:
+        property_dict["Type of property"] = (
+            "House"
+            if parts[5] in ["Residence", "Mixed building", "Master house", "Villa"]
+            else "Apartment"
+        )
+        property_dict["Subtype of property"] = parts[5]
+        property_dict["Type of sale"] = parts[6].replace("-", " ") if (parts[6]) else ""
+
+
+def set_property_price(property_dict, soup):
+    price = safe_get_text(soup.find("span", class_="detail__header_price_data"), "")
+    property_dict["Price"] = clean_numeric(price)
+
+
+def set_property_general_infos(soup, property_dict):
+    binary_map = {
+        "Yes": 1,
+        "No": 0,
+        "0": 0,
+        "Fully equipped": 1,
+        "Super equipped": 1,
+        "Partially equipped": 0,
+        None: None,
+    }
+
+    info_div = soup.find("div", class_="general-info w-100")
+    if info_div:
+        headers = info_div.find_all("h4")
+        for h in headers:
+            key = h.get_text(strip=True)
+            value_tag = h.find_next("p")
+            if value_tag:
+                val = value_tag.get_text(strip=True)
+                if key == "State of the property":
+                    property_dict["State of the building"] = val
+                elif key == "Number of bedrooms":
+                    property_dict["Number of rooms"] = clean_numeric(val)
+                elif key == "Livable surface":
+                    property_dict["Living Area"] = clean_numeric(val)
+                elif key == "Kitchen equipment":
+                    property_dict["Fully equipped kitchen"] = val
+                elif key == "Furnished":
+                    property_dict["Furnished"] = binary_map.get(val, 0)
+                elif key == "Fireplace":
+                    property_dict["Open fire"] = binary_map.get(val, 0)
+                elif key == "Terrace":
+                    property_dict["Terrace"] = binary_map.get(val, 0)
+                elif key == "Terrace Area":
+                    property_dict["Terrace area"] = clean_numeric(val)
+                elif key == "Garden":
+                    property_dict["Garden"] = binary_map.get(val, 0)
+                elif key == "Surface garden":
+                    property_dict["Garden area"] = clean_numeric(val)
+                elif key == "Total land surface":
+                    property_dict["Surface of the land"] = clean_numeric(val)
+                elif key == "Number of facades":
+                    property_dict["Number of facades"] = clean_numeric(val)
+                elif key == "Swimming pool":
+                    property_dict["Swimming pool"] = binary_map.get(val, 0)
+
+
+def safe_get_text(soup_element, default=None):
     """For safely take the value, will return NA if there's no value, avoid crashing"""
     if soup_element:
         return soup_element.get_text(strip=True)
     return default
 
-property_dict = {}
-#Get price and turn into integer
-price_tag = safe_get_text(soup.find('span', class_='detail__header_price_data'))
-if price_tag:
-    print(price_tag)
 
-numbers_only = re.findall(r'\d+', price_tag) #Have to clean data by eliminating the currency
-clean_price = "".join(numbers_only) #Eliminate the . between numbers
-
-if clean_price:
-    final_price = int(clean_price)
-    print(final_price)
-else:
-        print("None")
-
-#Get information of address
-street_tag = safe_get_text(soup.find('span', class_='street-line'))
-city_tag = safe_get_text(soup.find('span', class_='city-line'))
-
-full_address = f"{street_tag}, {city_tag}"
-
-print(street_tag) 
-print(city_tag)
-print(full_address)
-
-#Find all header with h4, then find value p inside
-additional_info = {}
-additional_information = soup.find('div', class_ = "general-info w-100") #Do not use find_all here as find_all return a list. Then, we cannot use command find() or find_all() anymore
-if additional_information:
-    # Find all the header in soup
-    all_headers = additional_information.find_all('h4')
-    
-    for header in all_headers:
-        # Take only the text in header
-        key = header.get_text(strip=True)
-        
-        # Find the nearest <p> in header h4
-        value_tag = header.find_next('p')
-        
-        if value_tag:
-            value = value_tag.get_text(strip=True)
-            additional_info[key] = value  
-else:
-    print ("N/A")
-# Take data Type of property and Type of sale
-parts = url.split('/')
-property_type = parts[5]
-type_of_sale = parts[6].replace('-', ' ')
-
-#Put everything in a dictionary
-property_dict= {
-    "URL": url,
-    "Type of property": property_type,
-    "Type of sale": type_of_sale,
-    "Price" : final_price,
-    "Locality" : full_address,
-    "Street" : street_tag,
-    "City" : city_tag,
-    "State of the property:": additional_info.get("State of the property", "N/A"),
-    "Number of rooms": additional_info.get("Number of bedrooms", "N/A"),
-    "Living Area":additional_info.get("Livable surface", "N/A"),
-    "Fully equiped kitchen":additional_info.get("Kitchen equipment", "N/A"),
-    "Furnished":additional_info.get("Furnished", "N/A"),
-    "Terrace":additional_info.get("Terrace", "N/A"),
-    "Garden":additional_info.get("Garden", "N/A"),
-    "Surface of the land":additional_info.get("Total land surface", "N/A"),
-    "Number of facades":additional_info.get("Number of facades", "N/A"),
-    "Swimming pool":additional_info.get("Swimming pool", "N/A"),
-    }
-print(property_dict)
+def clean_numeric(text):
+    if not text:
+        return None
+    numbers = "".join(re.findall(r"\d+", text))
+    return int(numbers) if numbers else None
