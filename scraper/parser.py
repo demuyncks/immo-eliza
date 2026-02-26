@@ -120,7 +120,7 @@ def set_property_type(property_dict, url):
     if len(parts) >= 6:
         property_dict["Type of property"] = (
             "House"
-            if parts[5] in ["Residence", "Mixed building", "Master house", "Villa"]
+            if parts[5] in ["residence", "mixed-building", "master-house", "villa"]
             else "Apartment"
         )
         property_dict["Subtype of property"] = parts[5]
