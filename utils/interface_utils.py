@@ -64,7 +64,8 @@ def execute_mission(task_name: str, task_function: Callable, *args: Any) -> int:
 
     print(f"{'—' * 78}")
     print(f"⏱️  Duration: {duration:.1f} minutes")
-    print(f"📊 Total items processed: {result_count}")
+    if result_count and result_count > 0:
+        print(f"📊 Total items processed: {result_count}")
     print(f"{'—' * 78}\n")
 
     return result_count
