@@ -1,21 +1,45 @@
-import time
-from time import perf_counter
+import sys
 
 import pandas as pd
 
+from scraper.cleaning import run_cleaner
+from scraper.crawler import run_optimized_crawling
 from scraper.parser import run_optimized_scraping
+from utils.interface_utils import start_mission_control, execute_mission
 
-print("_________________________________SCRAPING______________________________________")
-start_time = perf_counter()
 
-url = "https://immovlan.be/en"
+def main():
+    while True:
+        # Retrieve the agent's selection from the CLI menu
+        choice = start_mission_control()
 
-final_filename = "data/immo_eliza_final_dataset.csv"
+        # Dispatch the mission based on user input
+        if choice == 1:
+            # Launch the URL collection process
+            execute_mission("CRAWLING", run_optimized_crawling, "data/properties_urls.csv")
 
-list_urls = pd.read_csv("data/all_properties_urls_without_projects.csv")["property_url"].tolist()
+        elif choice == 2:
+            # Launch the data extraction process
 
-run_optimized_scraping(list_urls, final_filename)
+            urls = pd.read_csv("data/properties_urls.csv")["property_url"].tolist()
+            execute_mission("SCRAPING", run_optimized_scraping, urls, "data/properties_dataset.csv")
 
-print("______________________________________________________________________________")
-print(f"Ended in {(time.perf_counter() - start_time) / 60:.1f} minutes.")
-print(f"Total number of properties collected : {len(list_urls)}")
+        elif choice == 3:
+            execute_mission("CLEANING", run_cleaner, "data/properties_dataset.csv", "data/final_properties_dataset.csv")
+
+        elif choice == 0:
+            print("\n👋 Deactivating Agency systems... Standby for shutdown.")
+            sys.exit(0)
+        # Provide visual feedback before restarting the loop
+        print("\n" + "." * 50)
+        print("Mission accomplished. Returning to Mission Control...")
+        print("." * 50 + "\n")
+
+
+# THIS IS THE GUARD:
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n👋 Agent logout. Agency closing...")
+        sys.exit()
