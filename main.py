@@ -10,7 +10,7 @@ from utils.interface_utils import start_mission_control, execute_mission
 
 
 def main():
-    timestamp = datetime.datetime.now().strftime("%Y/%m/%d-%Hh%M")
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%M")
     urls_list_path = f"data/properties_urls_{timestamp}.csv"
     dataset_path = f"data/properties_dataset_{timestamp}.csv"
     cleand_dataset_path = f"data/cleaned_properties_dataset_{timestamp}.csv"
