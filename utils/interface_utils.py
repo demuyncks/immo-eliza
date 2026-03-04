@@ -9,15 +9,15 @@ def start_mission_control() -> int:
     Returns:
         int: The selected operation mode (0-3).
     """
-    print("=" * 54)
+    print("=" * 64)
     print("🏠  WELCOME TO THE IMMO-ELIZA INTELLIGENCE AGENCY  🏠")
-    print("=" * 54)
+    print("=" * 64)
     print("Agent, select your operational module:")
     print("  [1] 🏎️  Turbo-Crawler  : Discover hidden property URLs")
     print("  [2] 🕷️  Super-Scraper  : Extract details from listings")
     print("  [3] 🧹  Master-Cleaner : Sanitize the raw data (CSV)")
     print("  [0] 🚪  Exit Agency    : Terminate current session")
-    print("-" * 54)
+    print("-" * 64)
 
     while True:
         try:
