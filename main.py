@@ -1,3 +1,4 @@
+import datetime
 import sys
 
 import pandas as pd
@@ -9,6 +10,11 @@ from utils.interface_utils import start_mission_control, execute_mission
 
 
 def main():
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%M")
+    urls_list_path = f"data/properties_urls_{timestamp}.csv"
+    dataset_path = f"data/properties_dataset_{timestamp}.csv"
+    cleand_dataset_path = f"data/cleaned_properties_dataset_{timestamp}.csv"
+
     while True:
         # Retrieve the agent's selection from the CLI menu
         choice = start_mission_control()
@@ -16,16 +22,15 @@ def main():
         # Dispatch the mission based on user input
         if choice == 1:
             # Launch the URL collection process
-            execute_mission("CRAWLING", run_optimized_crawling, "data/properties_urls.csv")
+            execute_mission("CRAWLING", run_optimized_crawling, urls_list_path)
 
         elif choice == 2:
             # Launch the data extraction process
-
-            urls = pd.read_csv("data/properties_urls.csv")["property_url"].tolist()
-            execute_mission("SCRAPING", run_optimized_scraping, urls, "data/properties_dataset.csv")
+            execute_mission("SCRAPING", run_optimized_scraping, urls_list_path, dataset_path)
 
         elif choice == 3:
-            execute_mission("CLEANING", run_cleaner, "data/properties_dataset.csv", "data/final_properties_dataset.csv")
+            # Launch the data cleaning process
+            execute_mission("CLEANING", run_cleaner, dataset_path, cleand_dataset_path)
 
         elif choice == 0:
             print("\n👋 Deactivating Agency systems... Standby for shutdown.")
