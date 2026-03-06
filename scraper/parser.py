@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import Optional, Dict, Any
 
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
@@ -10,7 +11,7 @@ from utils.file_utils import save_to_csv_incremental
 from utils.helpers import clean_numeric, safe_get_text
 
 
-def run_optimized_scraping(urls, dataset_filename, batch_size=100):
+def run_optimized_scraping(urls_list_path, dataset_filename, batch_size=100):
     """
         Executes a high-performance scraping mission using concurrent threads and batch processing.
 
@@ -19,13 +20,14 @@ def run_optimized_scraping(urls, dataset_filename, batch_size=100):
         request speed metrics, and estimated time of completion (ETC).
 
         Args:
-            urls (List[str]): The complete list of property URLs to scrape.
+            urls_list_path (str): The path of the complete list of property URLs to scrape.
             dataset_filename (str): The destination CSV file path.
             batch_size (int): The number of URLs to process before performing a disk write.
 
         Returns:
             int: The total number of items successfully processed.
         """
+    urls = pd.read_csv(urls_list_path)["property_url"].tolist()
     total_urls = len(urls)
 
     print(f"Mission Started: Scraping {total_urls} target URLs.")
@@ -58,11 +60,11 @@ def run_optimized_scraping(urls, dataset_filename, batch_size=100):
             remaining = (total_urls - processed) / speed
 
             # Dashboard Display
-            print("_" * 56)
+            print("_" * 64)
             print(f"Progress: {processed} Finished in {elapsed / 60: .1f} minutes")
             print(f"URLs processed: ({(processed / total_urls) * 100:.1f}%) - Speed: {speed:.2f} items/sec")
             print(f"Estimated time remaining: {remaining / 60:.1f} minutes")
-            print("_" * 56)
+            print("_" * 64)
 
     return total_urls
 
@@ -252,7 +254,7 @@ def set_property_general_infos(soup: BeautifulSoup, property_dict: Dict[str, Any
                     property_dict["Open fire"] = binary_map.get(val, 0)
                 elif key == "Terrace":
                     property_dict["Terrace"] = binary_map.get(val, 0)
-                elif key == "Terrace Area":
+                elif key == "Surface terrace":
                     property_dict["Terrace area"] = clean_numeric(val)
                 elif key == "Garden":
                     property_dict["Garden"] = binary_map.get(val, 0)
