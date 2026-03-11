@@ -1,7 +1,8 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from typing import Optional, Dict, Any
+from typing import Dict, Any
+from typing import Optional
 
 import pandas as pd
 import requests
@@ -193,20 +194,42 @@ def set_property_locality(soup: BeautifulSoup, property_dict: Dict[str, Any]) ->
 
 
 def set_property_type(property_dict: Dict[str, Any], url: str) -> None:
-    """Determines the property category and subtype by analyzing the URL structure."""
-    parts = url.split("/")
-    if len(parts) >= 6:
-        subtype = parts[5]
-        property_dict["Type of property"] = (
-            "House"
-            if subtype in ["residence", "mixed-building", "master-house", "villa"]
-            else "Apartment"
-        )
-        property_dict["Subtype of property"] = subtype
+    """Determines property category and subtype using a flattened lookup for O(1) speed."""
+    subtype_to_category = {
+        # Houses
+        "residence": "House",
+        "villa": "House",
+        "mixed-building": "House",
+        "master-house": "House",
+        "cottage": "House",
+        "bungalow": "House",
+        "chalet": "House",
+        "mansion": "House",
 
-        # Extracts the transaction type (e.g., 'for-sale') from the URL
-        if len(parts) > 6:
-            property_dict["Type of sale"] = parts[6].replace("-", " ")
+        # Apartments
+        "apartment": "Apartment",
+        "penthouse": "Apartment",
+        "ground-floor": "Apartment",
+        "duplex": "Apartment",
+        "studio": "Apartment",
+        "loft": "Apartment",
+        "triplex": "Apartment",
+    }
+
+    parts = url.strip("/").split("/")
+
+    # Extract Subtype (Index 5)
+    subtype = parts[5] if len(parts) > 5 else None
+
+    # Extract Sale Type (Index 6)
+    sale_type = parts[6].replace("-", " ") if len(parts) > 6 else None
+
+    # Update the dictionary
+    property_dict.update({
+        "Type of property": subtype_to_category.get(subtype),
+        "Subtype of property": subtype,
+        "Type of sale": sale_type
+    })
 
 
 def set_property_price(property_dict: Dict[str, Any], soup: BeautifulSoup) -> None:

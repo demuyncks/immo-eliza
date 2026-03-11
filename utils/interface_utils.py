@@ -69,3 +69,37 @@ def execute_mission(task_name: str, task_function: Callable, *args: Any) -> int:
     print(f"{'—' * 78}\n")
 
     return result_count
+
+
+import os
+import glob
+
+
+def choose_csv_file(path, file_type):
+    # 1. Find all files starting with "data/properties_urls_"
+    # We use glob to handle the path and wildcard (*) easily
+    files = glob.glob(path)
+
+    if not files:
+        print("No matching CSV files found in the 'data/' folder.")
+        return None
+
+    # 2. Display the list to the user with numbers
+    print(f"\nAvailable {file_type} files:")
+    for index, file_path in enumerate(files, start=1):
+        # We use os.path.basename to show just the filename, not the full path
+        filename = os.path.basename(file_path)
+        print(f"[{index}] {filename}")
+
+    # 3. Let the user choose
+    while True:
+        try:
+            choice = int(input("\nSelect a file number: "))
+            if 1 <= choice <= len(files):
+                selected_file = files[choice - 1]
+                print(f"You selected: {selected_file}")
+                return selected_file
+            else:
+                print(f"Please enter a number between 1 and {len(files)}.")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")

@@ -1,16 +1,14 @@
 import datetime
 import sys
 
-import pandas as pd
-
 from scraper.cleaning import run_cleaner
 from scraper.crawler import run_optimized_crawling
 from scraper.parser import run_optimized_scraping
-from utils.interface_utils import start_mission_control, execute_mission
+from utils.interface_utils import start_mission_control, execute_mission, choose_csv_file
 
 
 def main():
-    timestamp = datetime.datetime.now().strftime("%Y/%m/%d-%Hh%M")
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%Hh%M")
     urls_list_path = f"data/properties_urls_{timestamp}.csv"
     dataset_path = f"data/properties_dataset_{timestamp}.csv"
     cleand_dataset_path = f"data/cleaned_properties_dataset_{timestamp}.csv"
@@ -26,10 +24,12 @@ def main():
 
         elif choice == 2:
             # Launch the data extraction process
+            urls_list_path = choose_csv_file("data/properties_urls_*.csv", 'Properties URLs list')
             execute_mission("SCRAPING", run_optimized_scraping, urls_list_path, dataset_path)
 
         elif choice == 3:
             # Launch the data cleaning process
+            dataset_path = choose_csv_file("data/properties_dataset_*.csv", 'Properties data list')
             execute_mission("CLEANING", run_cleaner, dataset_path, cleand_dataset_path)
 
         elif choice == 0:
