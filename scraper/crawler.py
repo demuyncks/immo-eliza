@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
@@ -197,6 +198,8 @@ def get_base_urls() -> List[str]:
 
     return base_urls
 =======
+=======
+>>>>>>> Stashed changes
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -390,4 +393,7 @@ def clean_numeric(text):
         return None
     numbers = "".join(re.findall(r"\d+", text))
     return int(numbers) if numbers else None
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
