@@ -1,4 +1,4 @@
-,URL,Zip code,City,Type of property,Subtype of property,Price,Type of sale,Number of rooms,Living Area,Fully equipped kitchen,Furnished,Open fire,Terrace,Garden,Garden area,Surface of the land,Number of facades,Swimming pool,State of the building
+,url,zip_code,city,type_of_property,subtype_of_property,price,type_of_sale,number_of_rooms,living_area,fully_equipped_kitchen,furnished,open_fire,terrace,garden,garden_area,surface_of_the_land,number_of_facades,swimming_pool,state_of_the_building
 1,https://immovlan.be/en/detail/residence/for-sale/2200/herentals/rbv30900,2200,Herentals,House,residence,369000,for sale,3,378,,0,0,1,1,,300,2,0,0
 2,https://immovlan.be/en/detail/apartment/for-sale/1190/vorst/vbd89298,1190,Vorst,Apartment,apartment,385000,for sale,2,100,,0,0,1,0,0,,,0,
 3,https://immovlan.be/en/detail/residence/for-sale/7100/la-louviere/vwd16672,7100,La Louvière,House,residence,135000,for sale,3,125,1,0,0,0,1,,,2,0,
