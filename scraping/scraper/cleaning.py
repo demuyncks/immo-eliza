@@ -441,7 +441,7 @@ def get_zip_mapping_df() -> pd.DataFrame:
     """
     Creates a clean lookup table for Zip codes to Provinces in English.
     """
-    path_prov = "./data/simon-data/provinces-zip.csv"
+    path_prov = "./data/reference/provinces_zip.csv"
 
     try:
         df_ref = pd.read_csv(path_prov)

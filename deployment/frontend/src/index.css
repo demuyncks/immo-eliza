@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-belgi-gold: #D4AF37;
+  --color-belgi-dark: #1A1C20;
+  --color-belgi-accent: #F27D26;
+  --color-belgi-bg: #F8F7F4;
+}
+
+@layer base {
+  body {
+    @apply bg-belgi-bg text-belgi-dark font-sans;
+  }
+}
+
